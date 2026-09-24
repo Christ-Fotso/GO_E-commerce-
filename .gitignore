@@ -11,3 +11,7 @@
 /.idea/
 /.vscode/
 vendor/
+
+# Ignorer les dossiers de cours
+Module*
+Template*
