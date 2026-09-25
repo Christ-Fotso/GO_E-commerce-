@@ -14,24 +14,51 @@ func NewUserRepository(db *sql.DB) *UserRepository {
 }
 
 func (r *UserRepository) Create(u *models.User) error {
+	if u.Role == "" {
+		u.Role = models.RoleClient
+	}
+
 	query := `
-		INSERT INTO users (username, email, password_hash, confirmation_code, is_confirmed) 
-		VALUES ($1, $2, $3, $4, $5) 
-		RETURNING id, created_at`
-	
-	err := r.DB.QueryRow(query, u.Username, u.Email, u.PasswordHash, u.ConfirmationCode, u.IsConfirmed).Scan(&u.ID, &u.CreatedAt)
+		INSERT INTO users (username, email, password_hash, role, confirmation_code, is_confirmed, reset_code) 
+		VALUES ($1, $2, $3, $4, $5, $6, $7) 
+		RETURNING id, created_at, updated_at`
+
+	err := r.DB.QueryRow(
+		query,
+		u.Username,
+		u.Email,
+		u.PasswordHash,
+		u.Role,
+		u.ConfirmationCode,
+		u.IsConfirmed,
+		u.ResetCode,
+	).Scan(&u.ID, &u.CreatedAt, &u.UpdatedAt)
 	return err
 }
 
 func (r *UserRepository) GetByEmail(email string) (*models.User, error) {
 	u := &models.User{}
-	query := `SELECT id, username, email, password_hash, confirmation_code, is_confirmed, created_at FROM users WHERE email = $1`
-	
-	err := r.DB.QueryRow(query, email).Scan(&u.ID, &u.Username, &u.Email, &u.PasswordHash, &u.ConfirmationCode, &u.IsConfirmed, &u.CreatedAt)
+	query := `
+		SELECT id, username, email, password_hash, role, confirmation_code, is_confirmed, reset_code, created_at, updated_at
+		FROM users
+		WHERE email = $1`
+
+	err := r.DB.QueryRow(query, email).Scan(
+		&u.ID,
+		&u.Username,
+		&u.Email,
+		&u.PasswordHash,
+		&u.Role,
+		&u.ConfirmationCode,
+		&u.IsConfirmed,
+		&u.ResetCode,
+		&u.CreatedAt,
+		&u.UpdatedAt,
+	)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return u, nil
 }
 
