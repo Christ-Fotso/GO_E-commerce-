@@ -23,5 +23,20 @@ docker-compose up -d
 
 2. Lancer le serveur :
 ```bash
-go run cmd/server/main.go
+go run ./cmd/server
 ```
+
+3. Tester (dans **un autre** terminal PowerShell, le serveur doit rester ouvert) :
+```powershell
+curl.exe http://localhost:8080/health
+```
+
+Sur PowerShell, `curl` tout court est un alias de `Invoke-WebRequest` : utiliser `curl.exe`.
+
+Si le port 8080 est pris :
+```powershell
+$env:PORT=8081; go run ./cmd/server
+curl.exe http://localhost:8081/health
+```
+
+Les URLs de l'équipe sont figées dans [API.md](API.md) et `internal/api/routes.go`.

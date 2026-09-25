@@ -4,42 +4,66 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 
+	"ecommerce-cli/internal/api"
 	"ecommerce-cli/internal/database"
 	"ecommerce-cli/internal/handlers"
 	"ecommerce-cli/internal/repositories"
 )
 
 func main() {
-	// 1. Connexion à la base de données
-	// dsn = Data Source Name (url de connexion)
 	dsn := "host=localhost port=5432 user=admin password=password dbname=ecommerce sslmode=disable"
 	db, err := database.InitDB(dsn)
 	if err != nil {
 		log.Fatalf("Impossible de se connecter à la DB: %v", err)
 	}
-	defer db.Close() // defer permet de fermer la DB à la toute fin (vu dans le Module 3)
+	defer db.Close()
 
-	// 2. Initialisation des Repositories
 	userRepo := repositories.NewUserRepository(db)
-
-	// 3. Initialisation des Handlers
 	authHandler := handlers.NewAuthHandler(userRepo)
 
-	// 4. Définition des routes (Style Module 10 avec Go 1.22+)
-	http.HandleFunc("POST /register", authHandler.Register)
-	http.HandleFunc("POST /login", authHandler.Login)
-	http.HandleFunc("POST /confirm", authHandler.Confirm)
+	// Routes déjà implémentées
+	http.HandleFunc(api.RouteHealth, handlers.Health)
+	http.HandleFunc(api.RouteRegister, authHandler.Register)
+	http.HandleFunc(api.RouteLogin, authHandler.Login)
+	http.HandleFunc(api.RouteConfirm, authHandler.Confirm)
 
-	http.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintln(w, "Bienvenue sur l'API E-Commerce ! L'environnement est prêt.")
-	})
+	// Contrat figé : 501 tant que Dev 1 ne les implémente pas
+	for _, route := range []string{
+		api.RouteResetPassword,
+		api.RouteProductList,
+		api.RouteProductGet,
+		api.RouteCartGet,
+		api.RouteCartAddItem,
+		api.RouteCartUpdate,
+		api.RouteCartDelete,
+		api.RouteCartPay,
+		api.RouteOrderList,
+		api.RouteOrderGet,
+		api.RouteAdminUserList,
+		api.RouteAdminUserCreate,
+		api.RouteAdminUserUpdate,
+		api.RouteAdminUserDelete,
+		api.RouteAdminUserConfirm,
+		api.RouteAdminProductCreate,
+		api.RouteAdminOrderList,
+		api.RouteAdminOrderCreate,
+		api.RouteAdminOrderStatus,
+	} {
+		http.HandleFunc(route, handlers.NotImplemented)
+	}
 
-	// 5. Lancement du serveur
-	port := ":8080"
-	fmt.Printf("Démarrage du serveur HTTP sur http://localhost%s...\n", port)
-	
-	if err := http.ListenAndServe(port, nil); err != nil {
-		log.Fatalf("Erreur au démarrage du serveur: %v\n", err)
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = api.DefaultPort
+	}
+
+	addr := ":" + port
+	fmt.Printf("Démarrage du serveur HTTP sur http://localhost%s ...\n", addr)
+	fmt.Println("Test : curl.exe http://localhost" + addr + "/health")
+
+	if err := http.ListenAndServe(addr, nil); err != nil {
+		log.Fatalf("Port %s déjà utilisé. Ferme l'autre terminal (Ctrl+C) ou relance avec :\n  $env:PORT=8081; go run ./cmd/server\nDétail: %v", port, err)
 	}
 }
