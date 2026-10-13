@@ -5,10 +5,10 @@ import "time"
 // Cart représente le panier d'un utilisateur
 type Cart struct {
 	ID        int        `json:"id"`
-	Reference string     `json:"reference"`
+	Reference string     `json:"reference"` // identifiant métier BSK-XXXXXX
 	UserID    int        `json:"user_id"`
 	Items     []CartItem `json:"items,omitempty"`
-	TotalTTC  float64    `json:"total_ttc"`
+	TotalTTC  float64    `json:"total_ttc"` // livraison toujours gratuite
 	CreatedAt time.Time  `json:"created_at"`
 }
 

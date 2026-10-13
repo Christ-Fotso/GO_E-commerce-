@@ -2,6 +2,7 @@ package models
 
 import "time"
 
+// Rôles possibles d'un utilisateur
 const (
 	RoleCustomer = "customer"
 	RoleAdmin    = "admin"
@@ -12,7 +13,7 @@ type User struct {
 	ID               int        `json:"id"`
 	Username         string     `json:"username"`
 	Email            string     `json:"email"`
-	PasswordHash     string     `json:"-"`
+	PasswordHash     string     `json:"-"` // "-" cache ce champ en JSON
 	ConfirmationCode string     `json:"-"`
 	IsConfirmed      bool       `json:"is_confirmed"`
 	Role             string     `json:"role"`
