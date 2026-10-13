@@ -1,14 +1,10 @@
 package client
 
 import (
-	"fmt"
 	"strings"
-	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
-
-	"ecommerce-cli/internal/models"
 )
 
 func (m Model) updateRegister(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -29,31 +25,9 @@ func (m Model) updateRegister(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.registerForm = newRegisterForm()
 			return m, m.registerForm.Init()
 		}
-		for _, acc := range m.accounts {
-			if strings.EqualFold(acc.User.Email, email) || strings.EqualFold(acc.User.Username, username) {
-				m.statusErr = "Email ou username deja pris"
-				m.registerForm = newRegisterForm()
-				return m, m.registerForm.Init()
-			}
-		}
-
-		acc := mockAccount{
-			User: models.User{
-				ID:               m.nextID,
-				Username:         username,
-				Email:            email,
-				IsConfirmed:      false,
-				ConfirmationCode: mockConfirmCode,
-				CreatedAt:        time.Now(),
-			},
-			Password: password,
-		}
-		m.nextID++
-		m.accounts = append(m.accounts, acc)
-
-		cmd := m.goMenu()
-		m.statusOK = fmt.Sprintf("Compte cree, code = %s", mockConfirmCode)
-		return m, cmd
+		m.loading = true
+		m.statusOK = "Inscription en cours..."
+		return m, m.cmdRegister(username, email, password)
 	}
 
 	if m.registerForm != nil && m.registerForm.State == huh.StateAborted {
@@ -68,7 +42,7 @@ func (m Model) viewRegister() string {
 	if m.registerForm != nil {
 		body = m.registerForm.View()
 	}
-	return screenHeader("Register") +
-		subtitleStyle.Render("Inscription (mock local)") + "\n\n" +
+	return screenHeader("Inscription") +
+		subtitleStyle.Render("POST /register (API.md) + fallback mock") + "\n\n" +
 		body
 }

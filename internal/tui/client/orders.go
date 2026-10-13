@@ -22,6 +22,9 @@ func (m Model) updateOrders(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.ordersCursor < len(m.orders)-1 {
 			m.ordersCursor++
 		}
+	case "r":
+		m.loading = true
+		return m, m.cmdLoadOrders()
 	}
 	return m, nil
 }
@@ -29,7 +32,7 @@ func (m Model) updateOrders(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m Model) viewOrders() string {
 	var b strings.Builder
 	b.WriteString(screenHeader("Mes commandes"))
-	b.WriteString(subtitleStyle.Render("Statuts: pending | paid | shipping | delivered | cancelled"))
+	b.WriteString(subtitleStyle.Render("GET /orders | pending|paid|shipping|delivered|cancelled"))
 	b.WriteString("\n\n")
 
 	if len(m.orders) == 0 {
@@ -38,8 +41,12 @@ func (m Model) viewOrders() string {
 	}
 
 	for i, o := range m.orders {
-		line := fmt.Sprintf("#%d  %.2f EUR  [%s]  %s",
-			o.ID, o.Total, o.Status, o.CreatedAt.Format("2006-01-02 15:04"))
+		ref := o.Reference
+		if ref == "" {
+			ref = fmt.Sprintf("#%d", o.ID)
+		}
+		line := fmt.Sprintf("%s  %.2f EUR  [%s]  %s",
+			ref, o.Total, o.Status, o.CreatedAt.Format("2006-01-02 15:04"))
 		if i == m.ordersCursor {
 			b.WriteString(selectedItemStyle.Render("> "+line) + "\n")
 		} else {
@@ -47,7 +54,7 @@ func (m Model) viewOrders() string {
 		}
 	}
 
-	b.WriteString(helpStyle.Render("\nup/down | esc menu"))
+	b.WriteString(helpStyle.Render("\nup/down | r refresh | esc menu"))
 	b.WriteString("\n")
 	return b.String()
 }

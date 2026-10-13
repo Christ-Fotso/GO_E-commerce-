@@ -14,7 +14,7 @@ import (
 
 const defaultListWidth = 48
 
-// Session holds the logged-in user (mock for now, token later).
+// Session holds the logged-in user (token from POST /login).
 type Session struct {
 	User  *models.User
 	Token string
@@ -34,6 +34,8 @@ type Model struct {
 
 	statusOK  string
 	statusErr string
+	dataSource string // "api" | "mock" last successful source
+	loading    bool
 
 	selectedProduct *models.Product
 	cartCursor      int
@@ -92,10 +94,10 @@ func newMenuList(items []list.Item) list.Model {
 
 func guestMenuItems() []list.Item {
 	return []list.Item{
-		menuItem{title: "Register", screen: ScreenRegister},
-		menuItem{title: "Confirm", screen: ScreenConfirm},
-		menuItem{title: "Login", screen: ScreenLogin},
-		menuItem{title: "Reset password", screen: ScreenReset},
+		menuItem{title: "Inscription", screen: ScreenRegister},
+		menuItem{title: "Confirmation", screen: ScreenConfirm},
+		menuItem{title: "Connexion", screen: ScreenLogin},
+		menuItem{title: "Réinitialiser le mot de passe", screen: ScreenReset},
 		menuItem{title: "Quitter", quit: true},
 	}
 }
@@ -105,7 +107,7 @@ func shopMenuItems() []list.Item {
 		menuItem{title: "Catalogue / Recherche", screen: ScreenCatalog},
 		menuItem{title: "Panier", screen: ScreenCart},
 		menuItem{title: "Mes commandes", screen: ScreenOrders},
-		menuItem{title: "Deconnexion", logout: true},
+		menuItem{title: "Déconnexion", logout: true},
 		menuItem{title: "Quitter", quit: true},
 	}
 }
@@ -114,10 +116,11 @@ func shopMenuItems() []list.Item {
 func NewModel() Model {
 	products := mockProducts()
 	m := Model{
-		screen:   ScreenMenu,
-		products: products,
-		orders:   nil,
-		accounts: seedAccounts(),
+		screen:     ScreenMenu,
+		products:   products,
+		orders:     nil,
+		accounts:   seedAccounts(),
+		dataSource: SourceMock,
 		cart: models.Cart{
 			ID:     1,
 			UserID: 0,
@@ -173,7 +176,14 @@ func (m *Model) goTo(s Screen) tea.Cmd {
 			m.catalogList.SetWidth(m.width)
 			m.catalogList.SetHeight(12)
 		}
-		return nil
+		m.loading = true
+		return m.cmdLoadProducts("")
+	case ScreenCart:
+		m.loading = true
+		return m.cmdLoadCart("")
+	case ScreenOrders:
+		m.loading = true
+		return m.cmdLoadOrders()
 	case ScreenPayment:
 		m.paymentForm = newPaymentForm()
 		return m.paymentForm.Init()
@@ -185,6 +195,7 @@ func (m *Model) goTo(s Screen) tea.Cmd {
 func (m *Model) goMenu() tea.Cmd {
 	m.screen = ScreenMenu
 	m.clearStatus()
+	m.loading = false
 	return nil
 }
 
@@ -198,11 +209,16 @@ func (m Model) isFormScreen() bool {
 }
 
 func cartTotalTTC(cart models.Cart) float64 {
+	if cart.TotalTTC > 0 {
+		return cart.TotalTTC
+	}
 	var total float64
 	for _, it := range cart.Items {
-		if it.Product != nil {
-			total += it.Product.Price * float64(it.Quantity)
+		if it.LineTotalTTC > 0 {
+			total += it.LineTotalTTC
+			continue
 		}
+		total += productUnitTTC(it.Product) * float64(it.Quantity)
 	}
 	return total
 }
@@ -225,14 +241,15 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.quitting = true
 			return m, tea.Quit
 		}
-		// Sur les formulaires huh, laisser esc au formulaire (abort).
 		if !m.isFormScreen() && m.screen != ScreenMenu && (key == "esc" || key == "q") {
 			if m.screen == ScreenProduct {
 				return m, m.goTo(ScreenCatalog)
 			}
-			cmd := m.goMenu()
-			return m, cmd
+			return m, m.goMenu()
 		}
+	case registerDoneMsg, confirmDoneMsg, loginDoneMsg, resetDoneMsg,
+		productsDoneMsg, cartDoneMsg, payDoneMsg, ordersDoneMsg, logoutDoneMsg:
+		return m.handleAPIMsg(msg)
 	}
 
 	switch m.screen {
@@ -259,6 +276,161 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 }
 
+func (m Model) handleAPIMsg(msg tea.Msg) (tea.Model, tea.Cmd) {
+	m.loading = false
+	switch msg := msg.(type) {
+	case registerDoneMsg:
+		if msg.err != nil {
+			m.statusErr = msg.err.Error()
+			m.registerForm = newRegisterForm()
+			return m, m.registerForm.Init()
+		}
+		m.dataSource = msg.source
+		if msg.source == SourceMock {
+			acc := mockAccount{
+				User: models.User{
+					ID:               m.nextID,
+					Username:         msg.username,
+					Email:            msg.email,
+					IsConfirmed:      false,
+					Role:             models.RoleCustomer,
+					ConfirmationCode: msg.code,
+				},
+				Password: msg.password,
+			}
+			m.nextID++
+			m.accounts = append(m.accounts, acc)
+		}
+		_ = m.goMenu()
+		m.statusOK = fmt.Sprintf("Compte créé, code = %s [%s]", msg.code, sourceLabel(msg.source))
+		return m, nil
+
+	case confirmDoneMsg:
+		if msg.err != nil {
+			m.statusErr = msg.err.Error()
+			m.confirmForm = newConfirmForm()
+			return m, m.confirmForm.Init()
+		}
+		m.dataSource = msg.source
+		if msg.source == SourceMock {
+			for i := range m.accounts {
+				if strings.EqualFold(m.accounts[i].User.Email, msg.email) {
+					m.accounts[i].User.IsConfirmed = true
+				}
+			}
+		}
+		_ = m.goMenu()
+		m.statusOK = fmt.Sprintf("Compte %s confirmé [%s]", msg.email, sourceLabel(msg.source))
+		return m, nil
+
+	case loginDoneMsg:
+		if msg.err != nil {
+			m.statusErr = msg.err.Error()
+			m.loginForm = newLoginForm()
+			return m, m.loginForm.Init()
+		}
+		user := msg.user
+		m.session = Session{User: &user, Token: msg.token}
+		m.api.SetToken(msg.token)
+		m.cart.UserID = user.ID
+		m.dataSource = msg.source
+		if msg.source == SourceMock {
+			m.orders = mockOrders(user.ID)
+		}
+		m.refreshMenu()
+		_ = m.goMenu()
+		m.statusOK = fmt.Sprintf("Bienvenue %s ! [%s]", user.Username, sourceLabel(msg.source))
+		return m, nil
+
+	case resetDoneMsg:
+		if msg.err != nil {
+			m.statusErr = msg.err.Error()
+			m.resetForm = newResetForm()
+			return m, m.resetForm.Init()
+		}
+		m.dataSource = msg.source
+		_ = m.goMenu()
+		m.statusOK = fmt.Sprintf("%s [%s]", msg.message, sourceLabel(msg.source))
+		return m, nil
+
+	case productsDoneMsg:
+		if msg.err != nil {
+			m.statusErr = msg.err.Error()
+			return m, nil
+		}
+		m.products = msg.products
+		m.dataSource = msg.source
+		m.catalogList = newCatalogList(m.products)
+		if m.width > 0 {
+			m.catalogList.SetWidth(m.width)
+			m.catalogList.SetHeight(12)
+		}
+		m.statusOK = fmt.Sprintf("%d produits [%s]", len(m.products), sourceLabel(msg.source))
+		return m, nil
+
+	case cartDoneMsg:
+		if msg.err != nil {
+			m.statusErr = msg.err.Error()
+			return m, nil
+		}
+		m.cart = msg.cart
+		m.dataSource = msg.source
+		if m.cartCursor >= len(m.cart.Items) && m.cartCursor > 0 {
+			m.cartCursor = len(m.cart.Items) - 1
+		}
+		if msg.okMsg != "" {
+			m.statusOK = msg.okMsg
+		} else {
+			m.statusOK = fmt.Sprintf("Panier [%s]", sourceLabel(msg.source))
+		}
+		if msg.goPay {
+			return m, m.goTo(ScreenPayment)
+		}
+		return m, nil
+
+	case payDoneMsg:
+		if msg.err != nil {
+			m.statusErr = msg.err.Error()
+			m.paymentForm = newPaymentForm()
+			return m, m.paymentForm.Init()
+		}
+		m.orders = append([]models.Order{msg.order}, m.orders...)
+		m.cart.Items = nil
+		m.cart.TotalTTC = 0
+		m.cartCursor = 0
+		m.ordersCursor = 0
+		m.dataSource = msg.source
+		m.screen = ScreenOrders
+		m.statusOK = fmt.Sprintf("Paiement OK - #%d %s [%s]", msg.order.ID, msg.order.Status, sourceLabel(msg.source))
+		return m, nil
+
+	case ordersDoneMsg:
+		if msg.err != nil {
+			m.statusErr = msg.err.Error()
+			return m, nil
+		}
+		m.orders = msg.orders
+		m.dataSource = msg.source
+		m.statusOK = fmt.Sprintf("%d commandes [%s]", len(m.orders), sourceLabel(msg.source))
+		return m, nil
+
+	case logoutDoneMsg:
+		m.session = Session{}
+		m.api.ClearToken()
+		m.cart = models.Cart{ID: 1}
+		m.cartCursor = 0
+		m.orders = nil
+		m.refreshMenu()
+		if msg.err != nil {
+			m.statusOK = fmt.Sprintf("Déconnecté (local) - API: %v", msg.err)
+		} else {
+			m.statusOK = fmt.Sprintf("Déconnecté [%s]", sourceLabel(msg.source))
+		}
+		return m, nil
+	}
+	return m, nil
+}
+
 func (m Model) updateMenu(msg tea.Msg) (tea.Model, tea.Cmd) {
 	if key, ok := msg.(tea.KeyMsg); ok && key.String() == "enter" {
 		if item, ok := m.menu.SelectedItem().(menuItem); ok {
@@ -267,13 +439,8 @@ func (m Model) updateMenu(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, tea.Quit
 			}
 			if item.logout {
-				m.session = Session{}
-				m.cart.Items = nil
-				m.cartCursor = 0
-				m.orders = nil
-				m.refreshMenu()
-				m.statusOK = "Deconnecte"
-				return m, nil
+				m.loading = true
+				return m, m.cmdLogout()
 			}
 			return m, m.goTo(item.screen)
 		}
@@ -285,7 +452,7 @@ func (m Model) updateMenu(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m Model) View() string {
 	if m.quitting {
-		return "A bientot !\n"
+		return "À bientôt !\n"
 	}
 
 	var body string
@@ -309,11 +476,14 @@ func (m Model) View() string {
 	case ScreenOrders:
 		body = m.viewOrders()
 	default:
-		body = "Ecran inconnu"
+		body = "Écran inconnu"
 	}
 
 	var b strings.Builder
 	b.WriteString(body)
+	if m.loading {
+		b.WriteString(infoStyle.Render("\nChargement...") + "\n")
+	}
 	if m.statusOK != "" {
 		b.WriteString(successStyle.Render("\n"+m.statusOK) + "\n")
 	}
@@ -327,13 +497,15 @@ func (m Model) viewMenu() string {
 	var b strings.Builder
 	b.WriteString(titleStyle.Render("E-Commerce CLI - Client"))
 	b.WriteString("\n")
+	b.WriteString(helpStyle.Render(fmt.Sprintf("API: %s | source: %s", m.api.BaseURL, m.dataSource)))
+	b.WriteString("\n")
 
 	if m.session.User != nil {
-		b.WriteString(infoStyle.Render(fmt.Sprintf("Connecte: %s (%s)", m.session.User.Username, m.session.User.Email)))
+		b.WriteString(infoStyle.Render(fmt.Sprintf("Connecté : %s (%s)", m.session.User.Username, m.session.User.Email)))
 		b.WriteString("\n")
-		b.WriteString(fmt.Sprintf("Panier: %d ligne(s) | Total TTC: %.2f EUR\n\n", len(m.cart.Items), cartTotalTTC(m.cart)))
+		b.WriteString(fmt.Sprintf("Panier : %d ligne(s) | Total TTC : %.2f EUR\n\n", len(m.cart.Items), cartTotalTTC(m.cart)))
 	} else {
-		b.WriteString(subtitleStyle.Render("Non connecte - inscris-toi ou connecte-toi"))
+		b.WriteString(subtitleStyle.Render("Non connecté — inscris-toi ou connecte-toi"))
 		b.WriteString("\n\n")
 	}
 
@@ -345,7 +517,7 @@ func (m Model) viewMenu() string {
 
 func screenHeader(title string) string {
 	return titleStyle.Render(title) + "\n" +
-		helpStyle.Render("esc retour (formulaires: abort huh)") + "\n\n"
+		helpStyle.Render("esc retour | API puis fallback mock si hors-ligne") + "\n\n"
 }
 
 func applyFormUpdate(form *huh.Form, msg tea.Msg) (*huh.Form, tea.Cmd) {

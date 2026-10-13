@@ -1,7 +1,6 @@
 package client
 
 import (
-	"fmt"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -18,26 +17,15 @@ func (m Model) updateReset(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	if m.resetForm != nil && m.resetForm.State == huh.StateCompleted {
 		email := strings.TrimSpace(m.resetForm.GetString("email"))
+		code := strings.TrimSpace(m.resetForm.GetString("code"))
 		newPass := m.resetForm.GetString("new_password")
-
 		if email == "" {
 			m.statusErr = "Email requis"
 			m.resetForm = newResetForm()
 			return m, m.resetForm.Init()
 		}
-
-		for i := range m.accounts {
-			if strings.EqualFold(m.accounts[i].User.Email, email) {
-				if newPass != "" {
-					m.accounts[i].Password = newPass
-				}
-				break
-			}
-		}
-
-		cmd := m.goMenu()
-		m.statusOK = fmt.Sprintf("Email de reset envoye a %s", email)
-		return m, cmd
+		m.loading = true
+		return m, m.cmdReset(email, code, newPass)
 	}
 
 	if m.resetForm != nil && m.resetForm.State == huh.StateAborted {
@@ -52,7 +40,7 @@ func (m Model) viewReset() string {
 	if m.resetForm != nil {
 		body = m.resetForm.View()
 	}
-	return screenHeader("Reset password") +
-		subtitleStyle.Render("Reinitialisation (mock)") + "\n\n" +
+	return screenHeader("Réinitialiser le mot de passe") +
+		subtitleStyle.Render("POST /password/forgot puis /password/reset (API.md)") + "\n\n" +
 		body
 }

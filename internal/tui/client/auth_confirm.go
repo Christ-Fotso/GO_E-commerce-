@@ -19,29 +19,8 @@ func (m Model) updateConfirm(msg tea.Msg) (tea.Model, tea.Cmd) {
 	if m.confirmForm != nil && m.confirmForm.State == huh.StateCompleted {
 		email := strings.TrimSpace(m.confirmForm.GetString("email"))
 		code := strings.TrimSpace(m.confirmForm.GetString("code"))
-
-		idx := -1
-		for i, acc := range m.accounts {
-			if strings.EqualFold(acc.User.Email, email) {
-				idx = i
-				break
-			}
-		}
-		if idx < 0 {
-			m.statusErr = "Utilisateur introuvable"
-			m.confirmForm = newConfirmForm()
-			return m, m.confirmForm.Init()
-		}
-		if code != mockConfirmCode && code != m.accounts[idx].User.ConfirmationCode {
-			m.statusErr = fmt.Sprintf("Code invalide (attendu: %s)", mockConfirmCode)
-			m.confirmForm = newConfirmForm()
-			return m, m.confirmForm.Init()
-		}
-
-		m.accounts[idx].User.IsConfirmed = true
-		cmd := m.goMenu()
-		m.statusOK = fmt.Sprintf("Compte %s confirme", email)
-		return m, cmd
+		m.loading = true
+		return m, m.cmdConfirm(email, code)
 	}
 
 	if m.confirmForm != nil && m.confirmForm.State == huh.StateAborted {
@@ -56,7 +35,7 @@ func (m Model) viewConfirm() string {
 	if m.confirmForm != nil {
 		body = m.confirmForm.View()
 	}
-	return screenHeader("Confirm") +
-		subtitleStyle.Render(fmt.Sprintf("Code mock: %s", mockConfirmCode)) + "\n\n" +
+	return screenHeader("Confirmation") +
+		subtitleStyle.Render(fmt.Sprintf("POST /confirm | code mock : %s", mockConfirmCode)) + "\n\n" +
 		body
 }

@@ -21,13 +21,13 @@ func (s Screen) String() string {
 	case ScreenMenu:
 		return "Menu"
 	case ScreenRegister:
-		return "Register"
+		return "Inscription"
 	case ScreenConfirm:
-		return "Confirm"
+		return "Confirmation"
 	case ScreenLogin:
-		return "Login"
+		return "Connexion"
 	case ScreenReset:
-		return "Reset"
+		return "Réinitialisation"
 	case ScreenCatalog:
 		return "Catalogue"
 	case ScreenProduct:

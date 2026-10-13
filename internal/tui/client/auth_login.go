@@ -1,7 +1,6 @@
 package client
 
 import (
-	"fmt"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -19,38 +18,8 @@ func (m Model) updateLogin(msg tea.Msg) (tea.Model, tea.Cmd) {
 	if m.loginForm != nil && m.loginForm.State == huh.StateCompleted {
 		email := strings.TrimSpace(m.loginForm.GetString("email"))
 		password := m.loginForm.GetString("password")
-
-		var found *mockAccount
-		for i := range m.accounts {
-			if strings.EqualFold(m.accounts[i].User.Email, email) {
-				found = &m.accounts[i]
-				break
-			}
-		}
-		if found == nil {
-			m.statusErr = "Utilisateur introuvable"
-			m.loginForm = newLoginForm()
-			return m, m.loginForm.Init()
-		}
-		if !found.User.IsConfirmed {
-			m.statusErr = "Compte non confirme - utilise Confirm"
-			m.loginForm = newLoginForm()
-			return m, m.loginForm.Init()
-		}
-		if found.Password != password {
-			m.statusErr = "Mot de passe incorrect"
-			m.loginForm = newLoginForm()
-			return m, m.loginForm.Init()
-		}
-
-		user := found.User
-		m.session = Session{User: &user, Token: "mock-token"}
-		m.cart.UserID = user.ID
-		m.orders = mockOrders(user.ID)
-		m.refreshMenu()
-		cmd := m.goMenu()
-		m.statusOK = fmt.Sprintf("Bienvenue %s !", user.Username)
-		return m, cmd
+		m.loading = true
+		return m, m.cmdLogin(email, password)
 	}
 
 	if m.loginForm != nil && m.loginForm.State == huh.StateAborted {
@@ -65,7 +34,7 @@ func (m Model) viewLogin() string {
 	if m.loginForm != nil {
 		body = m.loginForm.View()
 	}
-	return screenHeader("Login") +
-		subtitleStyle.Render("Compte demo: demo@example.com / demo123") + "\n\n" +
+	return screenHeader("Connexion") +
+		subtitleStyle.Render("POST /login | mock : demo@example.com / demo123") + "\n\n" +
 		body
 }
