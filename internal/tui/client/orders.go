@@ -29,6 +29,8 @@ func (m Model) updateOrders(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m Model) viewOrders() string {
 	var b strings.Builder
 	b.WriteString(screenHeader("Mes commandes"))
+	b.WriteString(subtitleStyle.Render("Statuts: pending | paid | shipping | delivered | cancelled"))
+	b.WriteString("\n\n")
 
 	if len(m.orders) == 0 {
 		b.WriteString(subtitleStyle.Render("Aucune commande") + "\n")

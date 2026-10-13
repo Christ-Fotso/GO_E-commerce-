@@ -1,41 +1,110 @@
 package client
 
-import "github.com/charmbracelet/huh"
+import (
+	"fmt"
+	"strconv"
+	"strings"
+	"unicode"
 
-// Formulaires auth (huh) — prêts à être branchés sur les écrans.
+	"github.com/charmbracelet/huh"
+)
 
-func newRegisterForm(username, email, password *string) *huh.Form {
+func newRegisterForm() *huh.Form {
 	return huh.NewForm(
 		huh.NewGroup(
-			huh.NewInput().Title("Username").Value(username),
-			huh.NewInput().Title("Email").Value(email),
-			huh.NewInput().Title("Password").EchoMode(huh.EchoModePassword).Value(password),
+			huh.NewInput().Key("username").Title("Username").Placeholder("demo"),
+			huh.NewInput().Key("email").Title("Email").Placeholder("demo@example.com"),
+			huh.NewInput().Key("password").Title("Password").EchoMode(huh.EchoModePassword),
 		),
-	)
+	).WithShowHelp(true)
 }
 
-func newConfirmForm(email, code *string) *huh.Form {
+func newConfirmForm() *huh.Form {
 	return huh.NewForm(
 		huh.NewGroup(
-			huh.NewInput().Title("Email").Value(email),
-			huh.NewInput().Title("Code de confirmation").Value(code),
+			huh.NewInput().Key("email").Title("Email").Placeholder("demo@example.com"),
+			huh.NewInput().Key("code").Title("Code de confirmation").Placeholder(mockConfirmCode),
 		),
-	)
+	).WithShowHelp(true)
 }
 
-func newLoginForm(email, password *string) *huh.Form {
+func newLoginForm() *huh.Form {
 	return huh.NewForm(
 		huh.NewGroup(
-			huh.NewInput().Title("Email").Value(email),
-			huh.NewInput().Title("Password").EchoMode(huh.EchoModePassword).Value(password),
+			huh.NewInput().Key("email").Title("Email").Placeholder("demo@example.com"),
+			huh.NewInput().Key("password").Title("Password").EchoMode(huh.EchoModePassword),
 		),
-	)
+	).WithShowHelp(true)
 }
 
-func newResetForm(email *string) *huh.Form {
+func newResetForm() *huh.Form {
 	return huh.NewForm(
 		huh.NewGroup(
-			huh.NewInput().Title("Email").Value(email),
+			huh.NewInput().Key("email").Title("Email").Placeholder("demo@example.com"),
+			huh.NewInput().Key("new_password").Title("Nouveau mot de passe (optionnel)").EchoMode(huh.EchoModePassword),
 		),
-	)
+	).WithShowHelp(true)
+}
+
+func newPaymentForm() *huh.Form {
+	return huh.NewForm(
+		huh.NewGroup(
+			huh.NewInput().
+				Key("card").
+				Title("Numero de carte").
+				Placeholder("1234567890123456").
+				Validate(validateCardNumber),
+			huh.NewInput().
+				Key("expiry").
+				Title("Date expiration (MM/YY)").
+				Placeholder("12/28").
+				Validate(validateExpiry),
+			huh.NewInput().
+				Key("cvc").
+				Title("CVC").
+				Placeholder("123").
+				EchoMode(huh.EchoModePassword).
+				Validate(validateCVC),
+		),
+	).WithShowHelp(true)
+}
+
+func digitsOnly(s string) string {
+	var b strings.Builder
+	for _, r := range s {
+		if unicode.IsDigit(r) {
+			b.WriteRune(r)
+		}
+	}
+	return b.String()
+}
+
+func validateCardNumber(s string) error {
+	d := digitsOnly(s)
+	if len(d) < 13 || len(d) > 19 {
+		return fmt.Errorf("le numero doit contenir 13 a 19 chiffres")
+	}
+	return nil
+}
+
+func validateExpiry(s string) error {
+	s = strings.TrimSpace(s)
+	parts := strings.Split(s, "/")
+	if len(parts) != 2 {
+		return fmt.Errorf("format attendu: MM/YY")
+	}
+	month, errM := strconv.Atoi(parts[0])
+	_, errY := strconv.Atoi(parts[1])
+	if errM != nil || errY != nil || month < 1 || month > 12 || len(parts[1]) != 2 {
+		return fmt.Errorf("date invalide (MM/YY)")
+	}
+	return nil
+}
+
+func validateCVC(s string) error {
+	d := digitsOnly(s)
+	if len(d) < 3 || len(d) > 4 {
+		return fmt.Errorf("CVC: 3 ou 4 chiffres")
+	}
+	return nil
 }

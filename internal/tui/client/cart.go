@@ -38,12 +38,12 @@ func (m Model) updateCart(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.cartCursor--
 			}
 		}
-	case "p":
+	case "p", "enter":
 		if len(m.cart.Items) == 0 {
 			m.statusErr = "Panier vide"
 			return m, nil
 		}
-		m.goTo(ScreenPayment)
+		return m, m.goTo(ScreenPayment)
 	}
 	return m, nil
 }
@@ -60,12 +60,12 @@ func (m Model) viewCart() string {
 
 	for i, it := range m.cart.Items {
 		name := fmt.Sprintf("produit #%d", it.ProductID)
-		price := 0.0
+		unit := 0.0
 		if it.Product != nil {
 			name = it.Product.Name
-			price = it.Product.Price
+			unit = it.Product.Price
 		}
-		line := fmt.Sprintf("%s  x%d  (%.2f EUR)", name, it.Quantity, price*float64(it.Quantity))
+		line := fmt.Sprintf("%s  x%d  @ %.2f  = %.2f EUR", name, it.Quantity, unit, unit*float64(it.Quantity))
 		if i == m.cartCursor {
 			b.WriteString(selectedItemStyle.Render("> "+line) + "\n")
 		} else {
@@ -76,7 +76,7 @@ func (m Model) viewCart() string {
 	b.WriteString("\n")
 	b.WriteString(sectionStyle.Render(fmt.Sprintf("Total TTC: %.2f EUR", cartTotalTTC(m.cart))))
 	b.WriteString("\n")
-	b.WriteString(helpStyle.Render("\n+/- qte | d supprimer | p payer | esc menu"))
+	b.WriteString(helpStyle.Render("\n+/- qte | d supprimer | p/enter payer | esc menu"))
 	b.WriteString("\n")
 	return b.String()
 }

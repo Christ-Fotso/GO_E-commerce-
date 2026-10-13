@@ -5,21 +5,23 @@ import (
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/huh"
 
 	"ecommerce-cli/internal/models"
 )
 
 func (m Model) updatePayment(msg tea.Msg) (tea.Model, tea.Cmd) {
-	key, ok := msg.(tea.KeyMsg)
-	if !ok {
-		return m, nil
+	if key, ok := msg.(tea.KeyMsg); ok && key.String() == "esc" {
+		return m, m.goTo(ScreenCart)
 	}
 
-	// Squelette: enter = paiement mock reussi.
-	if key.String() == "enter" {
+	var cmd tea.Cmd
+	m.paymentForm, cmd = applyFormUpdate(m.paymentForm, msg)
+
+	if m.paymentForm != nil && m.paymentForm.State == huh.StateCompleted {
 		if len(m.cart.Items) == 0 {
 			m.statusErr = "Rien a payer"
-			return m, nil
+			return m, m.goTo(ScreenCart)
 		}
 
 		userID := 0
@@ -28,7 +30,7 @@ func (m Model) updatePayment(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		order := models.Order{
-			ID:        1000 + len(m.orders) + 1,
+			ID:        2000 + len(m.orders) + 1,
 			UserID:    userID,
 			Total:     cartTotalTTC(m.cart),
 			Status:    models.StatusPaid,
@@ -49,16 +51,27 @@ func (m Model) updatePayment(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.orders = append([]models.Order{order}, m.orders...)
 		m.cart.Items = nil
 		m.cartCursor = 0
-		m.goTo(ScreenOrders)
-		m.statusOK = fmt.Sprintf("Paiement mock OK - commande #%d", order.ID)
+		m.ordersCursor = 0
+		m.screen = ScreenOrders
+		m.clearStatus()
+		m.statusOK = fmt.Sprintf("Paiement OK - commande #%d [%s]", order.ID, order.Status)
+		return m, nil
 	}
-	return m, nil
+
+	if m.paymentForm != nil && m.paymentForm.State == huh.StateAborted {
+		return m, m.goTo(ScreenCart)
+	}
+
+	return m, cmd
 }
 
 func (m Model) viewPayment() string {
+	var body string
+	if m.paymentForm != nil {
+		body = m.paymentForm.View()
+	}
 	return screenHeader("Paiement") +
-		subtitleStyle.Render("Formulaire (squelette): n carte / date / CVC") + "\n\n" +
-		fmt.Sprintf("Montant a payer: %.2f EUR\n\n", cartTotalTTC(m.cart)) +
-		"Champs a brancher a l'etape mock UI.\n" +
-		helpStyle.Render("\nenter payer (mock) | esc menu") + "\n"
+		subtitleStyle.Render(fmt.Sprintf("Montant TTC: %.2f EUR", cartTotalTTC(m.cart))) + "\n\n" +
+		body + "\n" +
+		helpStyle.Render("Validation locale: 13-19 chiffres, MM/YY, CVC 3-4") + "\n"
 }
