@@ -13,3 +13,8 @@
 vendor/
 .ssh/
 
+# Documents personnels de soutenance & exposé (non versionnés)
+SOUTENANCE_*.md
+SPEECH_*.md
+*.log
+scratch/
