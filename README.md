@@ -55,3 +55,7 @@ ssh -p 2222 localhost admin
 ssh -p 2222 localhost client
 ```
 
+## Guide de test et évaluation
+
+Pour dérouler le protocole complet de test pas-à-pas couvrant l'ensemble des critères du sujet (authentification, recherche produit, panier, paiement avec algorithme de Luhn, commandes, administration et accès SSH), consultez le fichier [`MANUEL_TESTS.md`](MANUEL_TESTS.md).
+
