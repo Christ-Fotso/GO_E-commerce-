@@ -582,9 +582,9 @@ func (m *Model) View() string {
 
 	if m.statusMsg != "" {
 		if m.statusIsErr {
-			b.WriteString(errorStyle.Render("✖ "+m.statusMsg) + "\n\n")
+			b.WriteString(errorStyle.Render("[ERREUR] "+m.statusMsg) + "\n\n")
 		} else {
-			b.WriteString(successStyle.Render("✔ "+m.statusMsg) + "\n\n")
+			b.WriteString(successStyle.Render("[SUCCES] "+m.statusMsg) + "\n\n")
 		}
 	}
 

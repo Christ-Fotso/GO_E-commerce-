@@ -168,7 +168,7 @@ ssh -p 2222 localhost
 ```
 Un portail d'accueil interactif apparaît dans le terminal :
 ```text
-★ PORTAIL ACCÈS DISTANT SSH - E-COMMERCE ★
+PORTAIL ACCES DISTANT SSH - E-COMMERCE
 
 Veuillez sélectionner l'interface que vous souhaitez exécuter :
   [1] Interface Boutique & Achats (Client TUI)

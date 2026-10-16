@@ -174,7 +174,7 @@ func (m *Model) goTo(s Screen) tea.Cmd {
 		m.catalogList = newCatalogList(m.products)
 		if m.width > 0 {
 			m.catalogList.SetWidth(m.width)
-			m.catalogList.SetHeight(12)
+			m.catalogList.SetHeight(m.catalogHeight())
 		}
 		m.loading = true
 		return m.cmdLoadProducts("")
@@ -223,6 +223,14 @@ func cartTotalTTC(cart models.Cart) float64 {
 	return total
 }
 
+func (m Model) catalogHeight() int {
+	h := m.height - 6
+	if h < 18 {
+		h = 18
+	}
+	return h
+}
+
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
@@ -230,7 +238,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.height = msg.Height
 		m.menu.SetWidth(msg.Width)
 		m.catalogList.SetWidth(msg.Width)
-		m.catalogList.SetHeight(12)
+		m.catalogList.SetHeight(m.catalogHeight())
 	case tea.KeyMsg:
 		key := msg.String()
 		if key == "ctrl+c" {
@@ -363,7 +371,7 @@ func (m Model) handleAPIMsg(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.catalogList = newCatalogList(m.products)
 		if m.width > 0 {
 			m.catalogList.SetWidth(m.width)
-			m.catalogList.SetHeight(12)
+			m.catalogList.SetHeight(m.catalogHeight())
 		}
 		m.statusOK = fmt.Sprintf("%d produits [%s]", len(m.products), sourceLabel(msg.source))
 		return m, nil

@@ -27,7 +27,7 @@ func (p productItem) FilterValue() string {
 type productDelegate struct{}
 
 func (d productDelegate) Height() int                             { return 2 }
-func (d productDelegate) Spacing() int                            { return 1 }
+func (d productDelegate) Spacing() int                            { return 0 }
 func (d productDelegate) Update(_ tea.Msg, _ *list.Model) tea.Cmd { return nil }
 func (d productDelegate) Render(w io.Writer, m list.Model, index int, listItem list.Item) {
 	item, ok := listItem.(productItem)
@@ -37,10 +37,10 @@ func (d productDelegate) Render(w io.Writer, m list.Model, index int, listItem l
 	title := item.Title()
 	desc := item.Description()
 	if index == m.Index() {
-		fmt.Fprint(w, selectedItemStyle.Render("> "+title)+"\n"+itemStyle.Render("  "+desc))
+		fmt.Fprint(w, selectedItemStyle.Render("> "+title)+"\n"+itemStyle.Render("    "+desc))
 		return
 	}
-	fmt.Fprint(w, itemStyle.Render("  "+title)+"\n"+itemStyle.Render("  "+desc))
+	fmt.Fprint(w, itemStyle.Render("  "+title)+"\n"+helpStyle.Render("    "+desc))
 }
 
 func newCatalogList(products []models.Product) list.Model {
@@ -48,8 +48,8 @@ func newCatalogList(products []models.Product) list.Model {
 	for _, p := range products {
 		items = append(items, productItem{product: p})
 	}
-	l := list.New(items, productDelegate{}, 60, 14)
-	l.Title = "Produits (GET /products)"
+	l := list.New(items, productDelegate{}, 70, 20)
+	l.Title = "Catalogue des Produits"
 	l.SetShowStatusBar(true)
 	l.SetFilteringEnabled(true)
 	l.SetShowHelp(true)
