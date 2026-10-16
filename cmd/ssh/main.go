@@ -199,28 +199,30 @@ func (m *launcherModel) View() string {
 
 	sessionDuration := time.Since(m.startTime).Truncate(time.Second)
 
-	// Largeur du conteneur
+	// Largeur du conteneur unifié
 	boxWidth := 74
-	if m.width > 0 && m.width < 76 {
-		boxWidth = m.width - 2
+	if m.width > 0 && m.width < 78 {
+		boxWidth = m.width - 4
+	}
+	if boxWidth < 50 {
+		boxWidth = 50
 	}
 
-	// Styles principaux
-	bannerBorder := lipgloss.NewStyle().
-		Border(lipgloss.DoubleBorder()).
+	// Styles du conteneur unique
+	mainBoxStyle := lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
 		BorderForeground(colorIndigo).
-		Padding(0, 2).
-		Width(boxWidth).
-		Align(lipgloss.Center)
+		Padding(1, 2).
+		Width(boxWidth)
 
-	bannerTitle := lipgloss.NewStyle().
+	headerTitle := lipgloss.NewStyle().
 		Bold(true).
 		Foreground(colorWhite).
-		Render("E - C O M M E R C E   S E C U R E   G A T E W A Y")
+		Render("E-COMMERCE SECURE GATEWAY (ACCES DISTANT)")
 
-	bannerSub := lipgloss.NewStyle().
+	headerSub := lipgloss.NewStyle().
 		Foreground(colorSlate).
-		Render("Plateforme transactionnelle en ligne de commande - Architecture Charmbracelet")
+		Render("Plateforme transactionnelle en ligne de commande - Charmbracelet")
 
 	statusLine := lipgloss.JoinHorizontal(
 		lipgloss.Left,
@@ -231,77 +233,64 @@ func (m *launcherModel) View() string {
 		m.spinner.View(),
 	)
 
-	// Cartes d'application
-	cardStyleActive := lipgloss.NewStyle().
-		Border(lipgloss.RoundedBorder()).
-		BorderForeground(colorIndigo).
-		Background(colorDark).
-		Padding(1, 2).
-		Width(boxWidth - 4)
+	promptText := lipgloss.NewStyle().
+		Foreground(colorSlate).
+		Render("Veuillez selectionner l'interface a executer :")
 
-	cardStyleInactive := lipgloss.NewStyle().
-		Border(lipgloss.RoundedBorder()).
-		BorderForeground(colorBorder).
-		Padding(1, 2).
-		Width(boxWidth - 4)
-
-	// Contenu Carte 1 : Boutique
-	var card1 string
-	c1Title := lipgloss.NewStyle().Bold(true).Foreground(colorSky).Render("[1] Interface Boutique & Achats (Client TUI)")
-	c1Desc := lipgloss.NewStyle().Foreground(colorSlate).Render("Parcourir le catalogue, rechercher des articles, gerer son panier et regler par carte bancaire.")
-	c1Badge := lipgloss.NewStyle().Foreground(colorEmerald).Render("[DISPONIBLE] Acces public catalogue et commandes")
+	// Options unifiées au sein du même menu
+	var opt1, opt2 string
 	if m.menuIndex == 0 {
-		cursor := lipgloss.NewStyle().Foreground(colorIndigo).Bold(true).Render("> Appuyez sur Entree pour lancer la boutique")
-		card1 = cardStyleActive.Render(fmt.Sprintf("%s\n%s\n\n%s   %s", c1Title, c1Desc, c1Badge, cursor))
+		title1 := lipgloss.NewStyle().Foreground(colorSky).Bold(true).Render("> [1] Interface Boutique & Achats (Client TUI)")
+		desc1 := lipgloss.NewStyle().Foreground(colorWhite).Render("    Parcourir le catalogue, gerer le panier et regler ses commandes")
+		badge1 := lipgloss.NewStyle().Foreground(colorEmerald).Render("    [DISPONIBLE] Acces public client - Entree pour valider")
+		opt1 = fmt.Sprintf("%s\n%s\n%s", title1, desc1, badge1)
 	} else {
-		cursor := lipgloss.NewStyle().Foreground(colorSlate).Render("Touche [1] ou fleches pour selectionner")
-		card1 = cardStyleInactive.Render(fmt.Sprintf("%s\n%s\n\n%s   %s", c1Title, c1Desc, c1Badge, cursor))
+		title1 := lipgloss.NewStyle().Foreground(colorSlate).Render("  [1] Interface Boutique & Achats (Client TUI)")
+		desc1 := lipgloss.NewStyle().Foreground(colorSlate).Render("    Parcourir le catalogue, gerer le panier et regler ses commandes")
+		opt1 = fmt.Sprintf("%s\n%s", title1, desc1)
 	}
 
-	// Contenu Carte 2 : Administration
-	var card2 string
-	c2Title := lipgloss.NewStyle().Bold(true).Foreground(colorAmber).Render("[2] Console d'Administration (Admin TUI)")
-	c2Desc := lipgloss.NewStyle().Foreground(colorSlate).Render("Superviser les comptes, editer le catalogue, piloter les stocks et le cycle de vie des commandes.")
-	c2Badge := lipgloss.NewStyle().Foreground(colorAmber).Render("[RESTREINT] Acces gestionnaires - Authentification Bearer")
 	if m.menuIndex == 1 {
-		cursor := lipgloss.NewStyle().Foreground(colorIndigo).Bold(true).Render("> Appuyez sur Entree pour lancer l'administration")
-		card2 = cardStyleActive.Render(fmt.Sprintf("%s\n%s\n\n%s   %s", c2Title, c2Desc, c2Badge, cursor))
+		title2 := lipgloss.NewStyle().Foreground(colorAmber).Bold(true).Render("> [2] Console d'Administration (Admin TUI)")
+		desc2 := lipgloss.NewStyle().Foreground(colorWhite).Render("    Supervision des utilisateurs, du stock et du cycle des commandes")
+		badge2 := lipgloss.NewStyle().Foreground(colorAmber).Render("    [RESTREINT] Acces gestionnaires - Entree pour valider")
+		opt2 = fmt.Sprintf("%s\n%s\n%s", title2, desc2, badge2)
 	} else {
-		cursor := lipgloss.NewStyle().Foreground(colorSlate).Render("Touche [2] ou fleches pour selectionner")
-		card2 = cardStyleInactive.Render(fmt.Sprintf("%s\n%s\n\n%s   %s", c2Title, c2Desc, c2Badge, cursor))
+		title2 := lipgloss.NewStyle().Foreground(colorSlate).Render("  [2] Console d'Administration (Admin TUI)")
+		desc2 := lipgloss.NewStyle().Foreground(colorSlate).Render("    Supervision des utilisateurs, du stock et du cycle des commandes")
+		opt2 = fmt.Sprintf("%s\n%s", title2, desc2)
 	}
 
-	// Infos système en bas
-	metaStyle := lipgloss.NewStyle().Foreground(colorSlate).Width(boxWidth).Align(lipgloss.Left)
-	infoText := fmt.Sprintf("Utilisateur SSH: %s | Client: %s | Terminal: %s", m.remoteUser, m.remoteIP, m.termType)
+	divider := lipgloss.NewStyle().
+		Foreground(colorBorder).
+		Render(strings.Repeat("─", boxWidth-6))
 
-	// Aide navigation
+	infoText := lipgloss.NewStyle().
+		Foreground(colorSlate).
+		Render(fmt.Sprintf("Utilisateur SSH: %s | Client: %s | Terminal: %s", m.remoteUser, m.remoteIP, m.termType))
+
 	helpKey := lipgloss.NewStyle().Foreground(colorIndigo).Bold(true)
 	helpMuted := lipgloss.NewStyle().Foreground(colorSlate)
 	footerHelp := fmt.Sprintf("%s %s   %s %s   %s %s   %s %s",
-		helpKey.Render("[Haut/Bas] :"), helpMuted.Render("Changer"),
+		helpKey.Render("[Haut/Bas] :"), helpMuted.Render("Naviguer"),
 		helpKey.Render("[Entree] :"), helpMuted.Render("Lancer"),
 		helpKey.Render("[1 / 2] :"), helpMuted.Render("Acces direct"),
 		helpKey.Render("[q] :"), helpMuted.Render("Deconnexion"),
 	)
 
-	// Construction complète
-	var b strings.Builder
-	b.WriteString("\n")
-	b.WriteString(bannerBorder.Render(fmt.Sprintf("%s\n%s", bannerTitle, bannerSub)))
-	b.WriteString("\n\n")
-	b.WriteString(lipgloss.NewStyle().PaddingLeft(2).Render(statusLine))
-	b.WriteString("\n\n")
-	b.WriteString(lipgloss.NewStyle().PaddingLeft(2).Render(card1))
-	b.WriteString("\n")
-	b.WriteString(lipgloss.NewStyle().PaddingLeft(2).Render(card2))
-	b.WriteString("\n\n")
-	b.WriteString(lipgloss.NewStyle().PaddingLeft(2).Render(metaStyle.Render(infoText)))
-	b.WriteString("\n")
-	b.WriteString(lipgloss.NewStyle().PaddingLeft(2).Render(footerHelp))
-	b.WriteString("\n")
+	var content strings.Builder
+	content.WriteString(headerTitle + "\n")
+	content.WriteString(headerSub + "\n\n")
+	content.WriteString(statusLine + "\n\n")
+	content.WriteString(divider + "\n\n")
+	content.WriteString(promptText + "\n\n")
+	content.WriteString(opt1 + "\n\n")
+	content.WriteString(opt2 + "\n\n")
+	content.WriteString(divider + "\n\n")
+	content.WriteString(infoText + "\n")
+	content.WriteString(footerHelp)
 
-	return b.String()
+	return "\n" + mainBoxStyle.Render(content.String()) + "\n"
 }
 
 func main() {
