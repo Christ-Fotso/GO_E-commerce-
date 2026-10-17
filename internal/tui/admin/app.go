@@ -318,38 +318,15 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		}
 		return m, nil
+	}
 
-	case tea.KeyMsg:
-		// Gestion globale pour quitter
-		if msg.String() == "ctrl+c" {
-			return m, tea.Quit
-		}
-
-		// Si un formulaire est actif
-		if m.activeForm != nil {
-			form, cmd := m.activeForm.Update(msg)
-			if f, ok := form.(*huh.Form); ok {
-				m.activeForm = f
+	// Si un formulaire est actif, on lui transmet tous les messages (clavier et messages internes Huh)
+	if m.activeForm != nil {
+		if keyMsg, ok := msg.(tea.KeyMsg); ok {
+			if keyMsg.String() == "ctrl+c" {
+				return m, tea.Quit
 			}
-			if m.activeForm.State == huh.StateCompleted {
-				var submitCmd tea.Cmd
-				switch m.screen {
-				case ScreenUserCreate:
-					submitCmd = m.cmdSubmitUserCreate()
-				case ScreenUserEdit:
-					submitCmd = m.cmdSubmitUserEdit()
-				case ScreenProductCreate:
-					submitCmd = m.cmdSubmitProductCreate()
-				case ScreenOrderStatus:
-					submitCmd = m.cmdSubmitOrderStatus()
-				case ScreenOrderCreate:
-					submitCmd = m.cmdSubmitOrderCreate()
-				}
-				m.activeForm = nil
-				m.loading = true
-				return m, submitCmd
-			}
-			if m.activeForm.State == huh.StateAborted || msg.String() == "esc" {
+			if keyMsg.String() == "esc" {
 				m.activeForm = nil
 				m.statusMsg = "Opération annulée"
 				m.statusIsErr = false
@@ -365,21 +342,66 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 				return m, nil
 			}
-			return m, cmd
+		}
+
+		form, cmd := m.activeForm.Update(msg)
+		if f, ok := form.(*huh.Form); ok {
+			m.activeForm = f
+		}
+		if m.activeForm.State == huh.StateCompleted {
+			var submitCmd tea.Cmd
+			switch m.screen {
+			case ScreenUserCreate:
+				submitCmd = m.cmdSubmitUserCreate()
+			case ScreenUserEdit:
+				submitCmd = m.cmdSubmitUserEdit()
+			case ScreenProductCreate:
+				submitCmd = m.cmdSubmitProductCreate()
+			case ScreenOrderStatus:
+				submitCmd = m.cmdSubmitOrderStatus()
+			case ScreenOrderCreate:
+				submitCmd = m.cmdSubmitOrderCreate()
+			}
+			m.activeForm = nil
+			m.loading = true
+			return m, submitCmd
+		}
+		if m.activeForm.State == huh.StateAborted {
+			m.activeForm = nil
+			m.statusMsg = "Opération annulée"
+			m.statusIsErr = false
+			switch m.screen {
+			case ScreenUserCreate, ScreenUserEdit:
+				m.screen = ScreenUsers
+			case ScreenProductCreate:
+				m.screen = ScreenProducts
+			case ScreenOrderStatus, ScreenOrderCreate:
+				m.screen = ScreenOrders
+			default:
+				m.screen = ScreenMenu
+			}
+			return m, nil
+		}
+		return m, cmd
+	}
+
+	if keyMsg, ok := msg.(tea.KeyMsg); ok {
+		if keyMsg.String() == "ctrl+c" {
+			return m, tea.Quit
 		}
 
 		// Navigation des écrans
 		switch m.screen {
 		case ScreenMenu:
-			return m.updateMenu(msg)
+			return m.updateMenu(keyMsg)
 		case ScreenUsers:
-			return m.updateUsers(msg)
+			return m.updateUsers(keyMsg)
 		case ScreenProducts:
-			return m.updateProducts(msg)
+			return m.updateProducts(keyMsg)
 		case ScreenOrders:
-			return m.updateOrders(msg)
+			return m.updateOrders(keyMsg)
 		case ScreenOrderDetails:
-			if msg.String() == "esc" || msg.String() == "b" || msg.String() == "enter" {
+			if keyMsg.String() == "esc" || keyMsg.String() == "b" || keyMsg.String() == "enter" {
 				m.screen = ScreenOrders
 				return m, nil
 			}

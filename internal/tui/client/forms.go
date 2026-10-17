@@ -6,8 +6,18 @@ import (
 	"strings"
 	"unicode"
 
+	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/huh"
 )
+
+func customKeyMap() *huh.KeyMap {
+	km := huh.NewDefaultKeyMap()
+	km.Input.Next = key.NewBinding(key.WithKeys("enter", "tab", "down"), key.WithHelp("enter/↓", "suivant"))
+	km.Input.Prev = key.NewBinding(key.WithKeys("shift+tab", "up"), key.WithHelp("↑", "précédent"))
+	km.Confirm.Next = key.NewBinding(key.WithKeys("enter", "tab", "down"), key.WithHelp("enter/↓", "suivant"))
+	km.Confirm.Prev = key.NewBinding(key.WithKeys("shift+tab", "up"), key.WithHelp("↑", "précédent"))
+	return km
+}
 
 func newRegisterForm() *huh.Form {
 	return huh.NewForm(
@@ -16,7 +26,7 @@ func newRegisterForm() *huh.Form {
 			huh.NewInput().Key("email").Title("Email").Placeholder("demo@example.com"),
 			huh.NewInput().Key("password").Title("Mot de passe").EchoMode(huh.EchoModePassword),
 		),
-	).WithShowHelp(true)
+	).WithKeyMap(customKeyMap()).WithShowHelp(true)
 }
 
 func newConfirmForm() *huh.Form {
@@ -25,7 +35,7 @@ func newConfirmForm() *huh.Form {
 			huh.NewInput().Key("email").Title("Email").Placeholder("demo@example.com"),
 			huh.NewInput().Key("code").Title("Code de confirmation").Placeholder(mockConfirmCode),
 		),
-	).WithShowHelp(true)
+	).WithKeyMap(customKeyMap()).WithShowHelp(true)
 }
 
 func newLoginForm() *huh.Form {
@@ -34,7 +44,7 @@ func newLoginForm() *huh.Form {
 			huh.NewInput().Key("email").Title("Email").Placeholder("demo@example.com"),
 			huh.NewInput().Key("password").Title("Mot de passe").EchoMode(huh.EchoModePassword),
 		),
-	).WithShowHelp(true)
+	).WithKeyMap(customKeyMap()).WithShowHelp(true)
 }
 
 func newResetForm() *huh.Form {
@@ -44,7 +54,7 @@ func newResetForm() *huh.Form {
 			huh.NewInput().Key("code").Title("Code reset (vide = demander un code)").Placeholder(mockResetCode),
 			huh.NewInput().Key("new_password").Title("Nouveau mot de passe").EchoMode(huh.EchoModePassword),
 		),
-	).WithShowHelp(true)
+	).WithKeyMap(customKeyMap()).WithShowHelp(true)
 }
 
 func newPaymentForm() *huh.Form {
@@ -67,7 +77,7 @@ func newPaymentForm() *huh.Form {
 				EchoMode(huh.EchoModePassword).
 				Validate(validateCVC),
 		),
-	).WithShowHelp(true)
+	).WithKeyMap(customKeyMap()).WithShowHelp(true)
 }
 
 func digitsOnly(s string) string {

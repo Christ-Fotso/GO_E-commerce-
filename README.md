@@ -49,10 +49,10 @@ go run ./cmd/ssh
 ```bash
 ssh -p 2222 localhost
 ```
-Un menu interactif permet de choisir entre l'interface Boutique et l'interface Administration. On peut aussi lancer directement une interface spécifique :
+Un menu interactif permet de choisir entre l'interface Boutique et l'interface Administration. On peut aussi lancer directement une interface spécifique avec l'option `-t` (force l'allocation d'un terminal interactif) :
 ```bash
-ssh -p 2222 localhost admin
-ssh -p 2222 localhost client
+ssh -t -p 2222 localhost admin
+ssh -t -p 2222 localhost client
 ```
 
 ## Guide de test et évaluation

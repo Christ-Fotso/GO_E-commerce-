@@ -1,8 +1,18 @@
 package admin
 
 import (
+	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/huh"
 )
+
+func customKeyMap() *huh.KeyMap {
+	km := huh.NewDefaultKeyMap()
+	km.Input.Next = key.NewBinding(key.WithKeys("enter", "tab", "down"), key.WithHelp("enter/↓", "suivant"))
+	km.Input.Prev = key.NewBinding(key.WithKeys("shift+tab", "up"), key.WithHelp("↑", "précédent"))
+	km.Confirm.Next = key.NewBinding(key.WithKeys("enter", "tab", "down"), key.WithHelp("enter/↓", "suivant"))
+	km.Confirm.Prev = key.NewBinding(key.WithKeys("shift+tab", "up"), key.WithHelp("↑", "précédent"))
+	return km
+}
 
 func newUserCreateForm(username, email, password, role *string, isConfirmed *bool) *huh.Form {
 	return huh.NewForm(
@@ -30,7 +40,7 @@ func newUserCreateForm(username, email, password, role *string, isConfirmed *boo
 				Title("Compte immédiatement confirmé ?").
 				Value(isConfirmed),
 		),
-	).WithShowHelp(true)
+	).WithKeyMap(customKeyMap()).WithShowHelp(true)
 }
 
 func newUserEditForm(username, email, password, role *string, isConfirmed *bool) *huh.Form {
@@ -57,7 +67,7 @@ func newUserEditForm(username, email, password, role *string, isConfirmed *bool)
 				Title("Compte confirmé ?").
 				Value(isConfirmed),
 		),
-	).WithShowHelp(true)
+	).WithKeyMap(customKeyMap()).WithShowHelp(true)
 }
 
 func newProductCreateForm(name, description, category, price, taxRate, stock *string) *huh.Form {
@@ -88,7 +98,7 @@ func newProductCreateForm(name, description, category, price, taxRate, stock *st
 				Value(stock).
 				Placeholder("15"),
 		),
-	).WithShowHelp(true)
+	).WithKeyMap(customKeyMap()).WithShowHelp(true)
 }
 
 func newOrderStatusForm(status, reason *string) *huh.Form {
@@ -108,7 +118,7 @@ func newOrderStatusForm(status, reason *string) *huh.Form {
 				Value(reason).
 				Placeholder("ex: Rupture de stock ou demande client"),
 		),
-	).WithShowHelp(true)
+	).WithKeyMap(customKeyMap()).WithShowHelp(true)
 }
 
 func newOrderCreateForm(userID, productID, quantity, status *string) *huh.Form {
@@ -134,5 +144,5 @@ func newOrderCreateForm(userID, productID, quantity, status *string) *huh.Form {
 				).
 				Value(status),
 		),
-	).WithShowHelp(true)
+	).WithKeyMap(customKeyMap()).WithShowHelp(true)
 }
