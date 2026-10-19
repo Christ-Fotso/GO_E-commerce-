@@ -14,7 +14,8 @@ vendor/
 .ssh/
 
 # Documents personnels de soutenance & exposé (non versionnés)
-SOUTENANCE_*.md
-SPEECH_*.md
+SOUTENANCE_*
+SPEECH_*
+*.pptx
 *.log
 scratch/
